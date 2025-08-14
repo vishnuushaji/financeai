@@ -1,0 +1,222 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(222.2 84% 4.9%);
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(222.2 84% 4.9%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(222.2 84% 4.9%);
+  --primary: hsl(214.3 83.2% 57.6%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(210 40% 98%);
+  --secondary-foreground: hsl(222.2 84% 4.9%);
+  --muted: hsl(210 40% 98%);
+  --muted-foreground: hsl(215.4 16.3% 46.9%);
+  --accent: hsl(210 40% 98%);
+  --accent-foreground: hsl(222.2 84% 4.9%);
+  --destructive: hsl(0 84.2% 60.2%);
+  --destructive-foreground: hsl(210 40% 98%);
+  --border: hsl(214.3 31.8% 91.4%);
+  --input: hsl(214.3 31.8% 91.4%);
+  --ring: hsl(214.3 83.2% 57.6%);
+  --chart-1: hsl(214.3 83.2% 57.6%);
+  --chart-2: hsl(173 58% 39%);
+  --chart-3: hsl(197 37% 24%);
+  --chart-4: hsl(43 74% 66%);
+  --chart-5: hsl(27 87% 67%);
+  --success-500: hsl(160 84% 39%);
+  --success-600: hsl(160 84% 34%);
+  --primary-50: hsl(214 100% 97%);
+  --primary-500: hsl(214.3 83.2% 57.6%);
+  --primary-600: hsl(214.3 83.2% 52.6%);
+  --primary-900: hsl(214.3 83.2% 12%);
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: hsl(222.2 84% 4.9%);
+  --foreground: hsl(210 40% 98%);
+  --card: hsl(222.2 84% 4.9%);
+  --card-foreground: hsl(210 40% 98%);
+  --popover: hsl(222.2 84% 4.9%);
+  --popover-foreground: hsl(210 40% 98%);
+  --primary: hsl(214.3 83.2% 57.6%);
+  --primary-foreground: hsl(222.2 84% 4.9%);
+  --secondary: hsl(217.2 32.6% 17.5%);
+  --secondary-foreground: hsl(210 40% 98%);
+  --muted: hsl(217.2 32.6% 17.5%);
+  --muted-foreground: hsl(215 20.2% 65.1%);
+  --accent: hsl(217.2 32.6% 17.5%);
+  --accent-foreground: hsl(210 40% 98%);
+  --destructive: hsl(0 62.8% 30.6%);
+  --destructive-foreground: hsl(210 40% 98%);
+  --border: hsl(217.2 32.6% 17.5%);
+  --input: hsl(217.2 32.6% 17.5%);
+  --ring: hsl(214.3 83.2% 57.6%);
+  --chart-1: hsl(220 70% 50%);
+  --chart-2: hsl(160 60% 45%);
+  --chart-3: hsl(30 80% 55%);
+  --chart-4: hsl(280 65% 60%);
+  --chart-5: hsl(340 75% 55%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+}
+
+/* Custom styles for the finance app */
+.text-primary-50 {
+  color: hsl(214 100% 97%);
+}
+
+.text-primary-100 {
+  color: hsl(214 95% 93%);
+}
+
+.text-primary-200 {
+  color: hsl(214 87% 85%);
+}
+
+.text-primary-300 {
+  color: hsl(214 82% 75%);
+}
+
+.text-primary-400 {
+  color: hsl(214 80% 65%);
+}
+
+.text-primary-500 {
+  color: hsl(214.3 83.2% 57.6%);
+}
+
+.text-primary-600 {
+  color: hsl(214.3 83.2% 52.6%);
+}
+
+.text-primary-900 {
+  color: hsl(214.3 83.2% 12%);
+}
+
+.bg-primary-50 {
+  background-color: hsl(214 100% 97%);
+}
+
+.bg-primary-100 {
+  background-color: hsl(214 95% 93%);
+}
+
+.bg-primary-500 {
+  background-color: hsl(214.3 83.2% 57.6%);
+}
+
+.bg-primary-600 {
+  background-color: hsl(214.3 83.2% 52.6%);
+}
+
+.bg-primary-900 {
+  background-color: hsl(214.3 83.2% 12%);
+}
+
+.text-success-500 {
+  color: hsl(160 84% 39%);
+}
+
+.text-success-600 {
+  color: hsl(160 84% 34%);
+}
+
+.bg-success-500 {
+  background-color: hsl(160 84% 39%);
+}
+
+.border-primary-100 {
+  border-color: hsl(214 95% 93%);
+}
+
+.border-primary-300 {
+  border-color: hsl(214 82% 75%);
+}
+
+.border-slate-100 {
+  border-color: hsl(210 40% 95%);
+}
+
+.border-slate-200 {
+  border-color: hsl(214.3 31.8% 91.4%);
+}
+
+.border-slate-700 {
+  border-color: hsl(215.3 19.3% 34.5%);
+}
+
+.text-slate-50 {
+  color: hsl(210 40% 98%);
+}
+
+.text-slate-400 {
+  color: hsl(215.4 16.3% 56.9%);
+}
+
+.text-slate-500 {
+  color: hsl(215.4 16.3% 46.9%);
+}
+
+.text-slate-600 {
+  color: hsl(215.4 16.3% 36.9%);
+}
+
+.text-slate-900 {
+  color: hsl(222.2 84% 4.9%);
+}
+
+.bg-slate-50 {
+  background-color: hsl(210 40% 98%);
+}
+
+.bg-slate-800 {
+  background-color: hsl(215.3 25% 26.7%);
+}
+
+.hover\:bg-slate-50:hover {
+  background-color: hsl(210 40% 98%);
+}
+
+.hover\:bg-slate-800:hover {
+  background-color: hsl(215.3 25% 26.7%);
+}
+
+.hover\:text-slate-900:hover {
+  color: hsl(222.2 84% 4.9%);
+}
+
+.hover\:text-primary-600:hover {
+  color: hsl(214.3 83.2% 52.6%);
+}
+
+.hover\:bg-primary-50:hover {
+  background-color: hsl(214 100% 97%);
+}
+
+.hover\:bg-primary-600:hover {
+  background-color: hsl(214.3 83.2% 52.6%);
+}
+
+.hover\:border-primary-500:hover {
+  border-color: hsl(214.3 83.2% 57.6%);
+}
+
+.group:hover .group-hover\:text-primary-500 {
+  color: hsl(214.3 83.2% 57.6%);
+}
+
+.group:hover .group-hover\:text-primary-600 {
+  color: hsl(214.3 83.2% 52.6%);
+}
