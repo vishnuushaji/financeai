@@ -1,6 +1,5 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
 import express from 'express';
-import { registerRoutes } from '../server/routes';
+import { registerRoutes } from '../server/routes.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -33,12 +32,12 @@ async function initializeRoutes() {
 }
 
 // Vercel serverless function handler
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req, res) {
   await initializeRoutes();
   
   // Convert Vercel request/response to Express
   await new Promise((resolve, reject) => {
-    app(req as any, res as any, (err: any) => {
+    app(req, res, (err) => {
       if (err) reject(err);
       else resolve(undefined);
     });
