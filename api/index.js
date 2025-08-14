@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import express from 'express';
-import { registerRoutes } from '../routes.js';
+import { registerRoutes } from '../server/routes';
 import dotenv from 'dotenv';
 
 dotenv.config();
