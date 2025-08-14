@@ -1,5 +1,7 @@
-import { type Transaction, type InsertTransaction, type Budget, type InsertBudget, type Category, type InsertCategory, type FinancialHealth, type SpendingAnalytics } from "@shared/schema";
+import { type Transaction, type InsertTransaction, type Budget, type InsertBudget, type Category, type InsertCategory, type FinancialHealth, type SpendingAnalytics, type User, type InsertUser, users, transactions, budgets, categories } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { db } from './db';
+import { eq, and, gte, lte, desc } from 'drizzle-orm';
 
 export interface IStorage {
   // Transactions
@@ -24,6 +26,11 @@ export interface IStorage {
   // Analytics
   getFinancialHealth(): Promise<FinancialHealth>;
   getSpendingAnalytics(): Promise<SpendingAnalytics>;
+
+  // User operations
+  getUserByEmail(email: string): Promise<User | null>;
+  createUser(user: InsertUser): Promise<User>;
+  updateUser(id: string, user: Partial<InsertUser>): Promise<User>;
 }
 
 export class MemStorage implements IStorage {
@@ -288,4 +295,217 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Database Storage Implementation
+export class DatabaseStorage implements IStorage {
+  async getTransactions(): Promise<Transaction[]> {
+    return await db.select().from(transactions).orderBy(desc(transactions.date));
+  }
+
+  async getTransactionsByCategory(category: string): Promise<Transaction[]> {
+    return await db.select().from(transactions)
+      .where(eq(transactions.category, category))
+      .orderBy(desc(transactions.date));
+  }
+
+  async getTransactionsByDateRange(startDate: Date, endDate: Date): Promise<Transaction[]> {
+    return await db.select().from(transactions)
+      .where(and(
+        gte(transactions.date, startDate),
+        lte(transactions.date, endDate)
+      ))
+      .orderBy(desc(transactions.date));
+  }
+
+  async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
+    const [created] = await db.insert(transactions).values(transaction).returning();
+    
+    // Update budget spent amount if it's an expense
+    if (transaction.type === 'expense') {
+      await this.updateBudgetSpent(transaction.category, parseFloat(transaction.amount));
+    }
+    
+    return created;
+  }
+
+  async updateTransaction(id: string, transaction: Partial<InsertTransaction>): Promise<Transaction> {
+    const [updated] = await db.update(transactions)
+      .set({ ...transaction, createdAt: new Date() })
+      .where(eq(transactions.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteTransaction(id: string): Promise<void> {
+    await db.delete(transactions).where(eq(transactions.id, id));
+  }
+
+  async getBudgets(month?: string): Promise<Budget[]> {
+    if (month) {
+      return await db.select().from(budgets).where(eq(budgets.month, month));
+    }
+    return await db.select().from(budgets);
+  }
+
+  async getBudgetByCategory(category: string, month: string): Promise<Budget | undefined> {
+    const [budget] = await db.select().from(budgets)
+      .where(and(
+        eq(budgets.category, category),
+        eq(budgets.month, month)
+      ));
+    return budget;
+  }
+
+  async createBudget(budget: InsertBudget): Promise<Budget> {
+    const [created] = await db.insert(budgets).values(budget).returning();
+    return created;
+  }
+
+  async updateBudget(id: string, budget: Partial<InsertBudget>): Promise<Budget> {
+    const [updated] = await db.update(budgets)
+      .set(budget)
+      .where(eq(budgets.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteBudget(id: string): Promise<void> {
+    await db.delete(budgets).where(eq(budgets.id, id));
+  }
+
+  async updateBudgetSpent(category: string, amount: number): Promise<void> {
+    const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
+    const existingBudget = await this.getBudgetByCategory(category, currentMonth);
+    
+    if (existingBudget) {
+      const currentSpent = parseFloat(existingBudget.spent) || 0;
+      const newSpent = currentSpent + amount;
+      
+      await db.update(budgets)
+        .set({ spent: newSpent.toString() })
+        .where(eq(budgets.id, existingBudget.id));
+    }
+  }
+
+  async getCategories(): Promise<Category[]> {
+    let allCategories = await db.select().from(categories);
+    
+    // Initialize default categories if none exist
+    if (allCategories.length === 0) {
+      await this.initializeDefaultCategories();
+      allCategories = await db.select().from(categories);
+    }
+    
+    return allCategories;
+  }
+
+  async createCategory(category: InsertCategory): Promise<Category> {
+    const [created] = await db.insert(categories).values(category).returning();
+    return created;
+  }
+
+  private async initializeDefaultCategories(): Promise<void> {
+    const defaultCategories: InsertCategory[] = [
+      { name: "Food & Dining", icon: "fas fa-utensils", color: "#f59e0b" },
+      { name: "Transportation", icon: "fas fa-car", color: "#3b82f6" },
+      { name: "Entertainment", icon: "fas fa-gamepad", color: "#8b5cf6" },
+      { name: "Shopping", icon: "fas fa-shopping-cart", color: "#06b6d4" },
+      { name: "Utilities", icon: "fas fa-bolt", color: "#ef4444" },
+      { name: "Healthcare", icon: "fas fa-heartbeat", color: "#10b981" },
+      { name: "Income", icon: "fas fa-plus", color: "#10b981" },
+      { name: "Other", icon: "fas fa-question", color: "#6b7280" },
+    ];
+
+    await db.insert(categories).values(defaultCategories);
+  }
+
+  async getFinancialHealth(): Promise<FinancialHealth> {
+    const allTransactions = await this.getTransactions();
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const allBudgets = await this.getBudgets(currentMonth);
+
+    const monthlySpending = allTransactions
+      .filter(t => t.type === 'expense' && t.date.toISOString().startsWith(currentMonth))
+      .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+
+    const totalBudgetLimit = allBudgets.reduce((sum, b) => sum + parseFloat(b.limit), 0);
+    const budgetRemaining = totalBudgetLimit - monthlySpending;
+
+    const score = Math.max(0, Math.min(100, Math.round((budgetRemaining / totalBudgetLimit) * 100)));
+
+    return {
+      score,
+      monthlySpending,
+      budgetRemaining,
+      spendingTrend: 0 // Simplified for now
+    };
+  }
+
+  async getSpendingAnalytics(): Promise<SpendingAnalytics> {
+    const allTransactions = await this.getTransactions();
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const allBudgets = await this.getBudgets(currentMonth);
+    const allCategories = await this.getCategories();
+
+    // Monthly trends - last 6 months
+    const monthlyTrends = Array.from({ length: 6 }, (_, i) => {
+      const date = new Date();
+      date.setMonth(date.getMonth() - i);
+      const month = date.toLocaleDateString('en', { month: 'short' });
+      const monthKey = date.toISOString().slice(0, 7);
+      
+      const amount = allTransactions
+        .filter(t => t.type === 'expense' && t.date.toISOString().startsWith(monthKey))
+        .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+
+      return { month, amount };
+    }).reverse();
+
+    // Category breakdown
+    const categoryBreakdown = allCategories.map(cat => {
+      const amount = allTransactions
+        .filter(t => t.category === cat.name && t.type === 'expense')
+        .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+      
+      return {
+        category: cat.name,
+        amount,
+        color: cat.color
+      };
+    }).filter(c => c.amount > 0);
+
+    // Budget progress
+    const budgetProgress = allBudgets.map(budget => ({
+      category: budget.category,
+      spent: parseFloat(budget.spent),
+      limit: parseFloat(budget.limit),
+      percentage: Math.round((parseFloat(budget.spent) / parseFloat(budget.limit)) * 100)
+    }));
+
+    return {
+      monthlyTrends,
+      categoryBreakdown,
+      budgetProgress
+    };
+  }
+
+  // User operations
+  async getUserByEmail(email: string): Promise<User | null> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || null;
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    const [created] = await db.insert(users).values(user).returning();
+    return created;
+  }
+
+  async updateUser(id: string, userData: Partial<InsertUser>): Promise<User> {
+    const [updated] = await db.update(users)
+      .set({ ...userData, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return updated;
+  }
+}
+
+export const storage = new DatabaseStorage();

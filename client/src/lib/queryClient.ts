@@ -8,19 +8,29 @@ async function throwIfResNotOk(res: Response) {
 }
 
 export async function apiRequest(
-  method: string,
   url: string,
-  data?: unknown | undefined,
-): Promise<Response> {
-  const res = await fetch(url, {
-    method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
+  options?: RequestInit,
+): Promise<any> {
+  const token = localStorage.getItem('auth_token');
+  const fullUrl = url.startsWith('http') ? url : `/api${url}`;
+  
+  const res = await fetch(fullUrl, {
+    headers: {
+      "Content-Type": "application/json",
+      ...(token && { "Authorization": `Bearer ${token}` }),
+      ...options?.headers,
+    },
     credentials: "include",
+    ...options,
   });
 
+  if (res.status === 401) {
+    localStorage.removeItem('auth_token');
+    window.location.href = '/login';
+  }
+
   await throwIfResNotOk(res);
-  return res;
+  return await res.json();
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
@@ -29,12 +39,22 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    const token = localStorage.getItem('auth_token');
     const res = await fetch(queryKey.join("/") as string, {
+      headers: {
+        ...(token && { "Authorization": `Bearer ${token}` }),
+      },
       credentials: "include",
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+      localStorage.removeItem('auth_token');
       return null;
+    }
+
+    if (res.status === 401) {
+      localStorage.removeItem('auth_token');
+      window.location.href = '/login';
     }
 
     await throwIfResNotOk(res);
