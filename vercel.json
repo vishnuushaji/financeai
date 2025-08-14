@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run vercel-build",
+  "buildCommand": "vite build",
   "outputDirectory": "dist/public",
   "framework": null,
   "rewrites": [
@@ -9,9 +9,8 @@
     }
   ],
   "functions": {
-    "api/index.js": {
-      "maxDuration": 30,
-      "includeFiles": "server/**"
+    "api/index.ts": {
+      "maxDuration": 30
     }
   },
   "env": {

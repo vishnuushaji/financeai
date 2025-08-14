@@ -1,5 +1,6 @@
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import express from 'express';
-import { registerRoutes } from '../server/routes.js';
+import { registerRoutes } from '../server/routes';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -31,18 +32,13 @@ async function initializeRoutes() {
   }
 }
 
-// Vercel serverless function handler - only handles /api/* routes
-export default async function handler(req, res) {
-  // Only handle API routes
-  if (!req.url.startsWith('/api/')) {
-    return res.status(404).json({ error: 'Not found' });
-  }
-
+// Vercel serverless function handler
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   await initializeRoutes();
   
   // Convert Vercel request/response to Express
   await new Promise((resolve, reject) => {
-    app(req, res, (err) => {
+    app(req as any, res as any, (err: any) => {
       if (err) reject(err);
       else resolve(undefined);
     });
