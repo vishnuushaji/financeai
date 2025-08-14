@@ -31,8 +31,13 @@ async function initializeRoutes() {
   }
 }
 
-// Vercel serverless function handler
+// Vercel serverless function handler - only handles /api/* routes
 export default async function handler(req, res) {
+  // Only handle API routes
+  if (!req.url.startsWith('/api/')) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
   await initializeRoutes();
   
   // Convert Vercel request/response to Express
