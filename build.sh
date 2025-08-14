@@ -13,16 +13,9 @@ npm install
 echo "Building client..."
 npm run build:client
 
-# Ensure api directory exists
-mkdir -p api
-
-# Build the API
-echo "Building API..."
-npm run build:api
-
-# Verify the API file was created
+# Verify the API file exists (it should already be there as .js)
 if [ ! -f "api/index.js" ]; then
-    echo "Error: api/index.js was not created!"
+    echo "Error: api/index.js does not exist!"
     exit 1
 fi
 
