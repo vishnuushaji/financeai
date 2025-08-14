@@ -56,7 +56,11 @@ export default function BudgetModal({ isOpen, onClose, budget }: BudgetModalProp
 
   const createBudgetMutation = useMutation({
     mutationFn: async (data: InsertBudget) => {
-      return apiRequest("POST", "/api/budgets", data);
+      // Fix: Use correct apiRequest format
+      return apiRequest("/budgets", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/budgets"] });
@@ -80,7 +84,11 @@ export default function BudgetModal({ isOpen, onClose, budget }: BudgetModalProp
 
   const updateBudgetMutation = useMutation({
     mutationFn: async (data: InsertBudget) => {
-      return apiRequest("PUT", `/api/budgets/${budget?.id}`, data);
+      // Fix: Use correct apiRequest format
+      return apiRequest(`/budgets/${budget?.id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/budgets"] });
@@ -103,7 +111,10 @@ export default function BudgetModal({ isOpen, onClose, budget }: BudgetModalProp
 
   const deleteBudgetMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("DELETE", `/api/budgets/${budget?.id}`);
+      // Fix: Use correct apiRequest format
+      return apiRequest(`/budgets/${budget?.id}`, {
+        method: "DELETE",
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/budgets"] });

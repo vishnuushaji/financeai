@@ -1,7 +1,9 @@
 import { Link, useLocation } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Sidebar() {
   const [location] = useLocation();
+  const { user, logout } = useAuth();
 
   const navigation = [
     { name: "Dashboard", href: "/", icon: "fas fa-chart-line" },
@@ -9,6 +11,27 @@ export default function Sidebar() {
     { name: "Budgets", href: "/budgets", icon: "fas fa-wallet" },
     { name: "AI Insights", href: "/insights", icon: "fas fa-brain" },
   ];
+
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    if (!user) return "U";
+    const firstInitial = user.firstName?.[0] || user.email[0];
+    const lastInitial = user.lastName?.[0] || "";
+    return (firstInitial + lastInitial).toUpperCase();
+  };
+
+  // Get display name
+  const getDisplayName = () => {
+    if (!user) return "User";
+    if (user.firstName || user.lastName) {
+      return `${user.firstName || ""} ${user.lastName || ""}`.trim();
+    }
+    return user.email.split("@")[0]; // Use email prefix as fallback
+  };
+
+  const handleLogout = () => {
+    logout();
+  };
 
   return (
     <div className="hidden lg:flex lg:flex-col lg:w-64 bg-primary-900 text-white">
@@ -36,16 +59,30 @@ export default function Sidebar() {
         })}
       </nav>
 
-      <div className="p-6 border-t border-slate-700">
+      <div className="p-6 border-t border-slate-700 space-y-4">
         <div className="flex items-center">
           <div className="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center">
-            <span className="font-semibold">JD</span>
+            <span className="font-semibold">{getUserInitials()}</span>
           </div>
-          <div className="ml-3">
-            <p className="font-medium">John Doe</p>
-            <p className="text-slate-400 text-sm">john@example.com</p>
+          <div className="ml-3 flex-1">
+            <p className="font-medium">{getDisplayName()}</p>
+            <p className="text-slate-400 text-sm">{user?.email || "Loading..."}</p>
+            {user && !user.isEmailVerified && (
+              <p className="text-yellow-400 text-xs mt-1">
+                <i className="fas fa-exclamation-circle mr-1"></i>
+                Email not verified
+              </p>
+            )}
           </div>
         </div>
+        
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center justify-center px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors"
+        >
+          <i className="fas fa-sign-out-alt mr-2"></i>
+          Logout
+        </button>
       </div>
     </div>
   );

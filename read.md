@@ -107,7 +107,6 @@ The development setup includes error overlays, source mapping, and development-s
 
 - **vite**: Fast build tool and development server
 - **typescript**: Static type checking for JavaScript
-- **@replit/vite-plugin-***: Replit-specific development enhancements
 - **esbuild**: Fast JavaScript bundler for production builds
 
 ## Additional Utilities

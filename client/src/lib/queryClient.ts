@@ -3,7 +3,14 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    let message;
+    try {
+      const json = JSON.parse(text);
+      message = json.message || text;
+    } catch {
+      message = text;
+    }
+    throw new Error(message);
   }
 }
 
@@ -27,10 +34,17 @@ export async function apiRequest(
   if (res.status === 401) {
     localStorage.removeItem('auth_token');
     window.location.href = '/login';
+    throw new Error('Unauthorized');
   }
 
   await throwIfResNotOk(res);
-  return await res.json();
+  
+  // Handle empty responses
+  const contentType = res.headers.get("content-type");
+  if (contentType && contentType.includes("application/json")) {
+    return await res.json();
+  }
+  return null;
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
@@ -40,8 +54,27 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     const token = localStorage.getItem('auth_token');
-    const res = await fetch(queryKey.join("/") as string, {
+    
+    // Fix: Handle queryKey properly
+    // If it's an array with a single string, use that string
+    // Otherwise, join with "/" but skip empty strings
+    let url: string;
+    if (Array.isArray(queryKey) && queryKey.length === 1 && typeof queryKey[0] === 'string') {
+      url = queryKey[0];
+    } else if (Array.isArray(queryKey)) {
+      url = queryKey.filter(key => key && typeof key === 'string').join("/");
+    } else {
+      url = String(queryKey);
+    }
+    
+    // Ensure the URL starts with /api if it doesn't already
+    if (!url.startsWith('/api') && !url.startsWith('http')) {
+      url = `/api${url}`;
+    }
+    
+    const res = await fetch(url, {
       headers: {
+        "Content-Type": "application/json",
         ...(token && { "Authorization": `Bearer ${token}` }),
       },
       credentials: "include",
@@ -55,10 +88,17 @@ export const getQueryFn: <T>(options: {
     if (res.status === 401) {
       localStorage.removeItem('auth_token');
       window.location.href = '/login';
+      throw new Error('Unauthorized');
     }
 
     await throwIfResNotOk(res);
-    return await res.json();
+    
+    // Handle empty responses
+    const contentType = res.headers.get("content-type");
+    if (contentType && contentType.includes("application/json")) {
+      return await res.json();
+    }
+    return null;
   };
 
 export const queryClient = new QueryClient({

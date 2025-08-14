@@ -21,9 +21,28 @@ export function useAuth() {
   const [token, setToken] = useState<string | null>(() => 
     localStorage.getItem('auth_token')
   );
+  const queryClient = useQueryClient();
 
-  const { data: user, isLoading } = useQuery({
-    queryKey: ['/api/auth/user'],
+  const { data: userData, isLoading } = useQuery({
+    queryKey: ['auth', 'user'],
+    queryFn: async () => {
+      if (!token) return null;
+      try {
+        // Remove /api prefix - apiRequest adds it automatically
+        const response = await apiRequest('/auth/user', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        return response.user as User;
+      } catch (error) {
+        // If token is invalid, clear it
+        localStorage.removeItem('auth_token');
+        setToken(null);
+        return null;
+      }
+    },
     enabled: !!token,
     retry: false,
   });
@@ -31,24 +50,24 @@ export function useAuth() {
   const logout = () => {
     localStorage.removeItem('auth_token');
     setToken(null);
+    queryClient.clear();
     window.location.href = '/login';
   };
 
   useEffect(() => {
-    // Set up axios interceptor for auth token
-    const originalRequest = apiRequest;
-    
-    // Add token to all requests
+    // Update token in localStorage whenever it changes
     if (token) {
       localStorage.setItem('auth_token', token);
+    } else {
+      localStorage.removeItem('auth_token');
     }
   }, [token]);
 
   return {
-    user,
+    user: userData,
     token,
     isLoading,
-    isAuthenticated: !!user && !!token,
+    isAuthenticated: !!userData && !!token,
     setToken,
     logout,
   };
@@ -57,6 +76,7 @@ export function useAuth() {
 export function useSignup() {
   const { toast } = useToast();
   const { setToken } = useAuth();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (data: {
@@ -65,7 +85,8 @@ export function useSignup() {
       firstName?: string;
       lastName?: string;
     }) => {
-      const response = await apiRequest('/api/auth/signup', {
+      // Remove /api prefix - apiRequest adds it automatically
+      const response = await apiRequest('/auth/signup', {
         method: 'POST',
         body: JSON.stringify(data),
         headers: { 'Content-Type': 'application/json' },
@@ -75,11 +96,19 @@ export function useSignup() {
     onSuccess: (data) => {
       setToken(data.token);
       localStorage.setItem('auth_token', data.token);
+      
+      // Update the user query cache
+      queryClient.setQueryData(['auth', 'user'], data.user);
+      
       toast({
         title: "Account created successfully!",
         description: data.message,
       });
-      window.location.href = '/dashboard';
+      
+      // Small delay to ensure state updates
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 100);
     },
     onError: (error: any) => {
       toast({
@@ -94,10 +123,12 @@ export function useSignup() {
 export function useLogin() {
   const { toast } = useToast();
   const { setToken } = useAuth();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (data: { email: string; password: string }) => {
-      const response = await apiRequest('/api/auth/login', {
+      // Remove /api prefix - apiRequest adds it automatically
+      const response = await apiRequest('/auth/login', {
         method: 'POST',
         body: JSON.stringify(data),
         headers: { 'Content-Type': 'application/json' },
@@ -107,11 +138,19 @@ export function useLogin() {
     onSuccess: (data) => {
       setToken(data.token);
       localStorage.setItem('auth_token', data.token);
+      
+      // Update the user query cache
+      queryClient.setQueryData(['auth', 'user'], data.user);
+      
       toast({
         title: "Welcome back!",
         description: data.message,
       });
-      window.location.href = '/dashboard';
+      
+      // Small delay to ensure state updates
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 100);
     },
     onError: (error: any) => {
       toast({
@@ -128,7 +167,8 @@ export function useForgotPassword() {
 
   return useMutation({
     mutationFn: async (data: { email: string }) => {
-      const response = await apiRequest('/api/auth/forgot-password', {
+      // Remove /api prefix - apiRequest adds it automatically
+      const response = await apiRequest('/auth/forgot-password', {
         method: 'POST',
         body: JSON.stringify(data),
         headers: { 'Content-Type': 'application/json' },
@@ -156,7 +196,7 @@ export function useResetPassword() {
 
   return useMutation({
     mutationFn: async (data: { token: string; password: string }) => {
-      const response = await apiRequest('/api/auth/reset-password', {
+      const response = await apiRequest('/auth/reset-password', {
         method: 'POST',
         body: JSON.stringify(data),
         headers: { 'Content-Type': 'application/json' },

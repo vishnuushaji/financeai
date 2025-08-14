@@ -40,17 +40,25 @@ export default function TransactionModal({ isOpen, onClose }: TransactionModalPr
 
   const createTransactionMutation = useMutation({
     mutationFn: async (data: InsertTransaction) => {
-      return apiRequest("POST", "/api/transactions", data);
+      // Fix: Use apiRequest with correct format
+      return apiRequest("/transactions", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
     },
     onSuccess: () => {
+      // Invalidate ALL related queries
       queryClient.invalidateQueries({ queryKey: ["/api/transactions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/financial-health"] });
       queryClient.invalidateQueries({ queryKey: ["/api/analytics"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/budgets"] }); // Added this!
+      
       toast({
         title: "Success",
         description: "Transaction added successfully",
       });
       form.reset();
+      setSuggestedCategory("");
       onClose();
     },
     onError: (error: any) => {
@@ -93,6 +101,38 @@ export default function TransactionModal({ isOpen, onClose }: TransactionModalPr
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
+              name="type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Type</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="expense">
+                        <div className="flex items-center">
+                          <i className="fas fa-arrow-down text-red-500 mr-2"></i>
+                          Expense
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="income">
+                        <div className="flex items-center">
+                          <i className="fas fa-arrow-up text-green-500 mr-2"></i>
+                          Income
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
               name="amount"
               render={({ field }) => (
                 <FormItem>
@@ -114,7 +154,7 @@ export default function TransactionModal({ isOpen, onClose }: TransactionModalPr
               )}
             />
             
-            <FormField
+                       <FormField
               control={form.control}
               name="description"
               render={({ field }) => (
@@ -159,7 +199,7 @@ export default function TransactionModal({ isOpen, onClose }: TransactionModalPr
                     </SelectContent>
                   </Select>
                   {suggestedCategory && (
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-500 mt-1">
                       <i className="fas fa-robot mr-1"></i>
                       AI suggests: {suggestedCategory}
                     </p>
@@ -169,47 +209,23 @@ export default function TransactionModal({ isOpen, onClose }: TransactionModalPr
               )}
             />
             
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="date"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Date</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="date"
-                        value={field.value instanceof Date ? field.value.toISOString().split('T')[0] : field.value}
-                        onChange={(e) => field.onChange(new Date(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Type</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="expense">Expense</SelectItem>
-                        <SelectItem value="income">Income</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Date</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="date"
+                      value={field.value instanceof Date ? field.value.toISOString().split('T')[0] : field.value}
+                      onChange={(e) => field.onChange(new Date(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             
             <div className="flex space-x-4 pt-4">
               <Button 
