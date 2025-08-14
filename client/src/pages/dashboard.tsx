@@ -79,7 +79,7 @@ export default function Dashboard() {
   return (
     <>
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header title="Dashboard" />
+        <Header title="Finance AI" />
         <main className="flex-1 overflow-auto p-6 pb-20 lg:pb-6">
           {/* Budget Warnings */}
           {budgetWarnings.length > 0 && (
