@@ -84,13 +84,16 @@ export class MemStorage implements IStorage {
     const transaction: Transaction = {
       ...insertTransaction,
       id,
+      date: insertTransaction.date ? new Date(insertTransaction.date) : new Date(),
       createdAt: new Date(),
-      isAutoCategorized: "false",
+      isAutoCategorized: insertTransaction.isAutoCategorized || "false",
     };
     this.transactions.set(id, transaction);
     
-    // Update budget spending
-    await this.updateBudgetSpending(transaction.category, parseFloat(transaction.amount));
+    // Update budget spending if it's an expense
+    if (transaction.type === 'expense' && transaction.category) {
+      await this.updateBudgetSpending(transaction.category, parseFloat(transaction.amount));
+    }
     
     return transaction;
   }
@@ -108,11 +111,11 @@ export class MemStorage implements IStorage {
 
   async deleteTransaction(id: string): Promise<void> {
     const transaction = this.transactions.get(id);
-    if (transaction) {
-      // Reverse budget spending
+    if (transaction && transaction.type === 'expense' && transaction.category) {
+      // Reverse budget spending for expenses
       await this.updateBudgetSpending(transaction.category, -parseFloat(transaction.amount));
-      this.transactions.delete(id);
     }
+    this.transactions.delete(id);
   }
 
   async getBudgets(month?: string): Promise<Budget[]> {
@@ -165,14 +168,14 @@ export class MemStorage implements IStorage {
   }
 
   private async updateBudgetSpending(category: string, amount: number): Promise<void> {
-    if (amount <= 0) return; // Only track expenses
-    
     const currentMonth = new Date().toISOString().slice(0, 7);
     const budget = Array.from(this.budgets.values())
       .find(b => b.category === category && b.month === currentMonth);
     
     if (budget) {
-      budget.spent = (parseFloat(budget.spent || '0') + amount).toString();
+      const currentSpent = parseFloat(budget.spent || '0');
+      const newSpent = Math.max(0, currentSpent + amount); // Ensure spent doesn't go negative
+      budget.spent = newSpent.toString();
       this.budgets.set(budget.id, budget);
     }
   }
