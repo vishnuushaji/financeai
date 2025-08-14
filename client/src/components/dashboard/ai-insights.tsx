@@ -1,10 +1,62 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import TransactionModal from "@/components/transactions/transaction-modal";
+import BudgetModal from "@/components/budgets/budget-modal";
+import { useToast } from "@/hooks/use-toast";
+import type { Transaction } from "@shared/schema";
 
 export default function AIInsights() {
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
+  const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
+  const { toast } = useToast();
+
+  const { data: transactions } = useQuery<Transaction[]>({
+    queryKey: ["/api/transactions"],
+  });
+
+  const handleExportData = () => {
+    if (!transactions || transactions.length === 0) {
+      toast({
+        title: "No Data",
+        description: "No transactions to export",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const csvContent = [
+      ["Date", "Description", "Category", "Type", "Amount"],
+      ...transactions.map(t => [
+        new Date(t.date).toLocaleDateString(),
+        t.description,
+        t.category,
+        t.type,
+        t.amount
+      ])
+    ].map(row => row.join(",")).join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "transactions.csv";
+    a.click();
+    window.URL.revokeObjectURL(url);
+
+    toast({
+      title: "Success",
+      description: "Transactions exported successfully",
+    });
+  };
+
+  const handleSetAlert = () => {
+    toast({
+      title: "Coming Soon",
+      description: "Budget alerts feature will be available soon",
+    });
+  };
 
   return (
     <>
@@ -66,6 +118,7 @@ export default function AIInsights() {
               
               <Button 
                 variant="outline"
+                onClick={() => setIsBudgetModalOpen(true)}
                 className="flex flex-col items-center p-4 h-auto border-2 border-dashed border-slate-300 hover:border-primary-500 hover:bg-primary-50 transition-colors group"
               >
                 <i className="fas fa-target text-2xl text-slate-400 group-hover:text-primary-500 mb-2"></i>
@@ -74,6 +127,7 @@ export default function AIInsights() {
               
               <Button 
                 variant="outline"
+                onClick={handleExportData}
                 className="flex flex-col items-center p-4 h-auto border-2 border-dashed border-slate-300 hover:border-primary-500 hover:bg-primary-50 transition-colors group"
               >
                 <i className="fas fa-file-export text-2xl text-slate-400 group-hover:text-primary-500 mb-2"></i>
@@ -82,6 +136,7 @@ export default function AIInsights() {
               
               <Button 
                 variant="outline"
+                onClick={handleSetAlert}
                 className="flex flex-col items-center p-4 h-auto border-2 border-dashed border-slate-300 hover:border-primary-500 hover:bg-primary-50 transition-colors group"
               >
                 <i className="fas fa-bell text-2xl text-slate-400 group-hover:text-primary-500 mb-2"></i>
@@ -95,6 +150,11 @@ export default function AIInsights() {
       <TransactionModal 
         isOpen={isTransactionModalOpen}
         onClose={() => setIsTransactionModalOpen(false)}
+      />
+      
+      <BudgetModal 
+        isOpen={isBudgetModalOpen}
+        onClose={() => setIsBudgetModalOpen(false)}
       />
     </>
   );

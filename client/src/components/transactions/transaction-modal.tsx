@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -84,6 +84,9 @@ export default function TransactionModal({ isOpen, onClose }: TransactionModalPr
             <i className="fas fa-plus mr-2"></i>
             Add Transaction
           </DialogTitle>
+          <DialogDescription>
+            Add a new income or expense transaction to track your finances
+          </DialogDescription>
         </DialogHeader>
         
         <Form {...form}>
@@ -145,7 +148,7 @@ export default function TransactionModal({ isOpen, onClose }: TransactionModalPr
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {categories?.map((category) => (
+                      {categories?.map((category: any) => (
                         <SelectItem key={category.id} value={category.name}>
                           <div className="flex items-center">
                             <i className={`${category.icon} mr-2`} style={{ color: category.color }}></i>

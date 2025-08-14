@@ -30,7 +30,13 @@ export const categories = pgTable("categories", {
   color: text("color").notNull(),
 });
 
-export const insertTransactionSchema = createInsertSchema(transactions).omit({
+export const insertTransactionSchema = createInsertSchema(transactions, {
+  amount: z.string().min(1, "Amount is required"),
+  description: z.string().min(1, "Description is required"),
+  category: z.string().min(1, "Category is required"),
+  type: z.enum(["income", "expense"]),
+  date: z.coerce.date(),
+}).omit({
   id: true,
   createdAt: true,
   isAutoCategorized: true,

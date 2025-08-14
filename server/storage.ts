@@ -172,7 +172,7 @@ export class MemStorage implements IStorage {
       .find(b => b.category === category && b.month === currentMonth);
     
     if (budget) {
-      budget.spent = (parseFloat(budget.spent) + amount).toString();
+      budget.spent = (parseFloat(budget.spent || '0') + amount).toString();
       this.budgets.set(budget.id, budget);
     }
   }
@@ -205,8 +205,8 @@ export class MemStorage implements IStorage {
 
     // Calculate budget remaining
     const budgets = await this.getBudgets(currentMonth);
-    const totalBudget = budgets.reduce((sum, b) => sum + parseFloat(b.limit), 0);
-    const totalSpent = budgets.reduce((sum, b) => sum + parseFloat(b.spent), 0);
+    const totalBudget = budgets.reduce((sum, b) => sum + parseFloat(b.limit || '0'), 0);
+    const totalSpent = budgets.reduce((sum, b) => sum + parseFloat(b.spent || '0'), 0);
     const budgetRemaining = totalBudget - totalSpent;
 
     // Calculate health score (simplified algorithm)
@@ -272,9 +272,9 @@ export class MemStorage implements IStorage {
     const budgets = await this.getBudgets(currentMonth);
     const budgetProgress = budgets.map(budget => ({
       category: budget.category,
-      spent: parseFloat(budget.spent),
-      limit: parseFloat(budget.limit),
-      percentage: (parseFloat(budget.spent) / parseFloat(budget.limit)) * 100,
+      spent: parseFloat(budget.spent || '0'),
+      limit: parseFloat(budget.limit || '0'),
+      percentage: (parseFloat(budget.spent || '0') / parseFloat(budget.limit || '1')) * 100,
     }));
 
     return {

@@ -16,13 +16,11 @@ export default function MobileNav() {
         {navigation.map((item) => {
           const isActive = location === item.href;
           return (
-            <Link key={item.name} href={item.href}>
-              <a className={`flex flex-col items-center p-2 ${
-                isActive ? "text-primary-500" : "text-slate-500"
-              }`}>
-                <i className={`${item.icon} text-xl mb-1`}></i>
-                <span className="text-xs">{item.name}</span>
-              </a>
+            <Link key={item.name} href={item.href} className={`flex flex-col items-center p-2 ${
+              isActive ? "text-primary-500" : "text-slate-500"
+            }`}>
+              <i className={`${item.icon} text-xl mb-1`}></i>
+              <span className="text-xs">{item.name}</span>
             </Link>
           );
         })}
