@@ -37,12 +37,14 @@ export class MemStorage implements IStorage {
   private transactions: Map<string, Transaction>;
   private budgets: Map<string, Budget>;
   private categories: Map<string, Category>;
+  private users: Map<string, User>;
 
   constructor() {
     this.transactions = new Map();
     this.budgets = new Map();
     this.categories = new Map();
-    
+    this.users = new Map();
+
     // Initialize default categories
     this.initializeDefaultCategories();
   }
@@ -93,7 +95,7 @@ export class MemStorage implements IStorage {
       id,
       date: insertTransaction.date ? new Date(insertTransaction.date) : new Date(),
       createdAt: new Date(),
-      isAutoCategorized: insertTransaction.isAutoCategorized || "false",
+      isAutoCategorized: "false",
     };
     this.transactions.set(id, transaction);
     
@@ -293,6 +295,42 @@ export class MemStorage implements IStorage {
       budgetProgress,
     };
   }
+
+  // User operations
+  async getUserByEmail(email: string): Promise<User | null> {
+    const user = Array.from(this.users.values()).find(u => u.email === email);
+    return user || null;
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    const id = randomUUID();
+    const newUser: User = {
+      id,
+      email: user.email,
+      password: user.password,
+      firstName: user.firstName || null,
+      lastName: user.lastName || null,
+      isEmailVerified: user.isEmailVerified || false,
+      emailVerificationToken: user.emailVerificationToken || null,
+      passwordResetToken: user.passwordResetToken || null,
+      passwordResetExpires: user.passwordResetExpires || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.users.set(id, newUser);
+    return newUser;
+  }
+
+  async updateUser(id: string, userData: Partial<InsertUser>): Promise<User> {
+    const existing = this.users.get(id);
+    if (!existing) {
+      throw new Error("User not found");
+    }
+
+    const updated = { ...existing, ...userData, updatedAt: new Date() };
+    this.users.set(id, updated);
+    return updated;
+  }
 }
 
 // Database Storage Implementation
@@ -375,11 +413,11 @@ export class DatabaseStorage implements IStorage {
   async updateBudgetSpent(category: string, amount: number): Promise<void> {
     const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
     const existingBudget = await this.getBudgetByCategory(category, currentMonth);
-    
+
     if (existingBudget) {
-      const currentSpent = parseFloat(existingBudget.spent) || 0;
+      const currentSpent = parseFloat(existingBudget.spent || '0');
       const newSpent = currentSpent + amount;
-      
+
       await db.update(budgets)
         .set({ spent: newSpent.toString() })
         .where(eq(budgets.id, existingBudget.id));
@@ -476,9 +514,9 @@ export class DatabaseStorage implements IStorage {
     // Budget progress
     const budgetProgress = allBudgets.map(budget => ({
       category: budget.category,
-      spent: parseFloat(budget.spent),
-      limit: parseFloat(budget.limit),
-      percentage: Math.round((parseFloat(budget.spent) / parseFloat(budget.limit)) * 100)
+      spent: parseFloat(budget.spent || '0'),
+      limit: parseFloat(budget.limit || '0'),
+      percentage: Math.round((parseFloat(budget.spent || '0') / parseFloat(budget.limit || '1')) * 100)
     }));
 
     return {
