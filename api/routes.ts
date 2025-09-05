@@ -21,16 +21,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes
   app.post("/api/auth/signup", async (req, res) => {
     try {
+      console.log("Signup API called with body:", req.body);
+
       const data = signupSchema.parse(req.body);
-      
+      console.log("Data parsed successfully:", { email: data.email, firstName: data.firstName });
+
       // Check if user already exists
+      console.log("Checking if user exists...");
       const existingUser = await storage.getUserByEmail(data.email);
       if (existingUser) {
+        console.log("User already exists");
         return res.status(400).json({ message: "User already exists" });
       }
+      console.log("User does not exist, proceeding...");
 
       // Hash password and create user
+      console.log("Hashing password...");
       const hashedPassword = await hashPassword(data.password);
+      console.log("Password hashed, creating user...");
+
       const user = await storage.createUser({
         email: data.email,
         password: hashedPassword,
@@ -38,20 +47,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastName: data.lastName,
         isEmailVerified: false,
       });
+      console.log("User created successfully:", user.id);
 
       // Generate verification token and send email
+      console.log("Creating email verification token...");
       const verificationToken = await createEmailVerificationToken(data.email);
       const verificationLink = `${req.protocol}://${req.get('host')}/verify-email?token=${verificationToken}`;
-      
+      console.log("Verification link created:", verificationLink);
+
+      console.log("Sending verification email...");
       await sendEmail({
         to: data.email,
         subject: "Verify Your Email - FinanceAI",
         html: generateVerificationEmail(verificationLink, data.firstName),
       });
+      console.log("Email sent successfully");
 
       // Generate JWT token
+      console.log("Generating JWT token...");
       const token = generateToken(user.id);
+      console.log("JWT token generated");
 
+      console.log("Signup completed successfully");
       res.status(201).json({
         message: "Account created successfully. Please check your email to verify your account.",
         token,
@@ -64,8 +81,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       });
     } catch (error) {
-      console.error("Signup error:", error);
-      res.status(500).json({ message: "Failed to create account" });
+      console.error("Signup error details:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      console.error("Error stack:", errorStack);
+      res.status(500).json({
+        message: "Failed to create account",
+        error: errorMessage,
+        stack: process.env.NODE_ENV === 'development' ? errorStack : undefined
+      });
     }
   });
 
